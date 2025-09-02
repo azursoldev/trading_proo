@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block title %}IB Connections{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">🔌 IB Connections</h1>
+        <p class="text-gray-600">Manage Interactive Brokers connections and settings</p>
+    </div>
+    
+    <!-- Messages -->
+    {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} p-4 rounded-md mb-4 {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Add New Connection Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">➕ Add New Connection</h2>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Connection Name</label>
+                <input type="text" name="name" required 
+                       placeholder="e.g., TWS, Gateway, Production" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Host</label>
+                <input type="text" name="host" required 
+                       placeholder="127.0.0.1" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
+                <select name="port" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="7497">7497 (TWS)</option>
+                    <option value="4001">4001 (IB Gateway)</option>
+                    <option value="7496">7496 (TWS Paper Trading)</option>
+                    <option value="4002">4002 (IB Gateway Paper Trading)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Client ID</label>
+                <input type="number" name="client_id" value="1" min="1" max="999" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="md:col-span-2 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition duration-200">
+                    ➕ Add Connection
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Existing Connections -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold">🔌 Existing Connections</h2>
+        </div>
+        
+        {% if connections %}
+            <div class="divide-y divide-gray-200">
+                {% for connection in connections %}
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3">
+                                    <h3 class="text-lg font-medium text-gray-900">{{ connection.name }}</h3>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                        {% if connection.status == 'connected' %}bg-green-100 text-green-800
+                                        {% elif connection.status == 'connecting' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ connection.status|title }}
+                                    </span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-600">
+                                    <p><strong>Host:</strong> {{ connection.host }}:{{ connection.port }}</p>
+                                    <p><strong>Client ID:</strong> {{ connection.client_id }}</p>
+                                    {% if connection.last_connected %}
+                                        <p><strong>Last Connected:</strong> {{ connection.last_connected|date:"M d, Y H:i:s" }}</p>
+                                    {% endif %}
+                                    {% if connection.auto_reconnect %}
+                                        <p><strong>Auto Reconnect:</strong> <span class="text-green-600">✓ Enabled</span></p>
+                                    {% else %}
+                                        <p><strong>Auto Reconnect:</strong> <span class="text-red-600">✗ Disabled</span></p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if connection.status == 'connected' %}
+                                    <button onclick="disconnectIB('{{ connection.name }}')" 
+                                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition duration-200">
+                                        🔌 Disconnect
+                                    </button>
+                                {% else %}
+                                    <button onclick="connectIB('{{ connection.name }}')" 
+                                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium transition duration-200">
+                                        🔌 Connect
+                                    </button>
+                                {% endif %}
+                                <button onclick="testConnection('{{ connection.name }}')" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition duration-200">
+                                    🧪 Test
+                                </button>
+                                <button onclick="deleteConnection('{{ connection.name }}')" 
+                                        class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium transition duration-200">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="px-6 py-12 text-center">
+                <p class="text-gray-500 text-lg">No IB connections configured yet.</p>
+                <p class="text-gray-400 text-sm mt-2">Add your first connection using the form above.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Quick Setup Guide -->
+    <div class="bg-blue-50 rounded-lg p-6 mt-8">
+        <h3 class="text-lg font-semibold text-blue-900 mb-4">📋 Quick Setup Guide</h3>
+        <div class="text-sm text-blue-800 space-y-2">
+            <p><strong>1. TWS (Trader Workstation):</strong> Use port 7497 for live trading, 7496 for paper trading</p>
+            <p><strong>2. IB Gateway:</strong> Use port 4001 for live trading, 4002 for paper trading</p>
+            <p><strong>3. Client ID:</strong> Must be unique for each connection (1-999)</p>
+            <p><strong>4. API Settings:</strong> Enable "Enable ActiveX and Socket Clients" in TWS/Gateway</p>
+            <p><strong>5. Firewall:</strong> Ensure ports are open in your firewall</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function connectIB(connectionName) {
+    showNotification('Connecting to IB...', 'info');
+    
+    fetch('/api/ib-connections/connect/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            connection_name: connectionName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Connected to IB successfully!', 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('Failed to connect: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error connecting to IB:', error);
+        showNotification('Error connecting to IB: ' + error.message, 'error');
+    });
+}
+
+function disconnectIB(connectionName) {
+    const confirmed = confirm('Are you sure you want to disconnect from IB?');
+    if (!confirmed) return;
+    
+    showNotification('Disconnecting from IB...', 'info');
+    
+    fetch('/api/ib-connections/disconnect/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            connection_name: connectionName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Disconnected from IB successfully!', 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('Failed to disconnect: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error disconnecting from IB:', error);
+        showNotification('Error disconnecting from IB: ' + error.message, 'error');
+    });
+}
+
+function testConnection(connectionName) {
+    showNotification('Testing connection...', 'info');
+    
+    fetch('/api/ib-connections/test/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            connection_name: connectionName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Connection test successful!', 'success');
+        } else {
+            showNotification('Connection test failed: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error testing connection:', error);
+        showNotification('Error testing connection: ' + error.message, 'error');
+    });
+}
+
+function deleteConnection(connectionName) {
+    const confirmed = confirm(`Are you sure you want to delete the connection "${connectionName}"?`);
+    if (!confirmed) return;
+    
+    showNotification('Deleting connection...', 'info');
+    
+    fetch('/api/ib-connections/delete/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            connection_name: connectionName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Connection deleted successfully!', 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('Failed to delete connection: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting connection:', error);
+        showNotification('Error deleting connection: ' + error.message, 'error');
+    });
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : 
+                   type === 'error' ? 'bg-red-500' : 
+                   type === 'info' ? 'bg-blue-500' : 'bg-gray-500';
+    
+    notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${bgColor} text-white`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

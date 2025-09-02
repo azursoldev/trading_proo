@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}GPT Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">🤖 GPT Analytics Dashboard</h1>
+        <p class="text-gray-600">Monitor GPT usage, token consumption, and analysis performance</p>
+    </div>
+
+    <!-- Token Usage Statistics -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🔢 Token Usage Statistics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ token_stats.max_tokens_per_request }}</div>
+                <div class="text-sm text-gray-500">Max Tokens per Request</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ token_stats.cache_duration|floatformat:0 }}</div>
+                <div class="text-sm text-gray-500">Cache Duration (seconds)</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">
+                    {% if token_stats.cache_enabled %}✅{% else %}❌{% endif %}
+                </div>
+                <div class="text-sm text-gray-500">Cache Enabled</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">
+                    {% if token_stats.optimization_enabled %}✅{% else %}❌{% endif %}
+                </div>
+                <div class="text-sm text-gray-500">Optimization Enabled</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Performance -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Articles</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ total_articles }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Analyzed Articles</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ analyzed_articles_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Analysis %</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ analysis_percentage|floatformat:1 }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Usage Distribution -->
+    {% if model_usage %}
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🤖 Model Usage Distribution</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for model in model_usage %}
+            <div class="text-center p-4 border border-gray-200 rounded-lg">
+                <div class="text-2xl font-bold text-gray-900">{{ model.count }}</div>
+                <div class="text-sm text-gray-500">{{ model.gpt_model_used }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Analysis Activity -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">📊 Recent Analysis Activity</h2>
+        {% if recent_analysis %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Article</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sentiment</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Analysis Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for article in recent_analysis %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ article.title|truncatechars:60 }}</div>
+                                <div class="text-sm text-gray-500">{{ article.source|title }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if article.gpt_sentiment %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if article.gpt_sentiment == 'positive' %}bg-green-100 text-green-800
+                                    {% elif article.gpt_sentiment == 'negative' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ article.get_gpt_sentiment_display }}
+                                    {% if article.gpt_sentiment_confidence %}
+                                        ({{ article.gpt_sentiment_confidence|floatformat:2 }})
+                                    {% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-gray-400">Not analyzed</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if article.gpt_impact %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if article.gpt_impact == 'high' %}bg-red-100 text-red-800
+                                    {% elif article.gpt_impact == 'medium' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ article.get_gpt_impact_display }}
+                                    {% if article.gpt_impact_confidence %}
+                                        ({{ article.gpt_impact_confidence|floatformat:2 }})
+                                    {% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-gray-400">Not analyzed</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ article.gpt_model_used|default:"N/A" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ article.gpt_analysis_date|date:"M d, H:i" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No analysis activity yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Start analyzing articles to see activity here.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Token Optimization Tips -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">💡 Token Optimization Tips</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <h3 class="font-medium text-gray-900">Current Optimizations</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">✅</span>
+                        <span>Limited input text length (title: 100 chars, summary: 200 chars)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">✅</span>
+                        <span>Conservative max tokens per request (1000)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">✅</span>
+                        <span>1-hour caching to avoid duplicate API calls</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-500 mr-2">✅</span>
+                        <span>Batch processing for multiple articles</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="space-y-3">
+                <h3 class="font-medium text-gray-900">Estimated Savings</h3>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex justify-between">
+                        <span>Without optimization:</span>
+                        <span class="font-medium">~2000-3000 tokens/article</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>With optimization:</span>
+                        <span class="font-medium text-green-600">~800-1200 tokens/article</span>
+                    </div>
+                    <div class="border-t pt-2">
+                        <div class="flex justify-between font-medium">
+                            <span>Total savings:</span>
+                            <span class="text-green-600">~50-60%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

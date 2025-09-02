@@ -1,0 +1,25 @@
+Django>=5.2.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+selenium>=4.15.0
+scrapy>=2.11.0
+pandas>=2.0.0
+lxml>=4.9.0
+fake-useragent>=1.4.0
+webdriver-manager>=4.0.0
+
+# Interactive Brokers API
+ibapi>=10.19.1
+websocket-client>=1.6.0
+numpy>=1.24.0
+python-dateutil>=2.8.0
+
+# Azure Deployment Dependencies
+gunicorn>=21.2.0
+psycopg2-binary>=2.9.7
+whitenoise>=6.6.0
+dj-database-url>=2.1.0
+python-decouple>=3.8
+azure-storage-blob>=12.19.0
+azure-identity>=1.15.0
+

@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}Scraping Control{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">🕷️ Scraping Control Panel</h1>
+        <p class="text-gray-600">Control and monitor web scraping operations for financial news</p>
+    </div>
+    
+    <!-- Statistics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ total_articles }}</div>
+                <div class="text-gray-600">Total Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.reuters|default:0 }}</div>
+                <div class="text-gray-600">Reuters Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.bloomberg|default:0 }}</div>
+                <div class="text-gray-600">Bloomberg Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.yahoo_finance|default:0 }}</div>
+                <div class="text-gray-600">Yahoo Finance Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.marketwatch|default:0 }}</div>
+                <div class="text-gray-600">MarketWatch Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.cnbc|default:0 }}</div>
+                <div class="text-gray-600">CNBC Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.finnhub|default:0 }}</div>
+                <div class="text-gray-600">FinnHub Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ recent_sessions|length }}</div>
+                <div class="text-gray-600">Recent Sessions</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alerts -->
+    <div class="hidden mb-6 p-4 rounded-md" id="successAlert"></div>
+    <div class="hidden mb-6 p-4 rounded-md" id="errorAlert"></div>
+    
+    <!-- Control Panel -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Start Scraping -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold mb-6 text-center">🚀 Start Scraping</h3>
+            <form id="scrapingForm" class="space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label for="source" class="block text-sm font-medium text-gray-700 mb-2">Data Source:</label>
+                    <select id="source" name="source" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="reuters">Reuters Finance</option>
+                        <option value="bloomberg">Bloomberg Markets</option>
+                        <option value="yahoo_finance">Yahoo Finance</option>
+                        <option value="marketwatch">MarketWatch</option>
+                        <option value="cnbc">CNBC Finance</option>
+                        <option value="finnhub">FinnHub API</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="maxArticles" class="block text-sm font-medium text-gray-700 mb-2">Max Articles:</label>
+                    <input type="number" id="maxArticles" name="maxArticles" value="20" min="1" max="100" 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="companySymbol" class="block text-sm font-medium text-gray-700 mb-2">Company Symbol (FinnHub only):</label>
+                    <input type="text" id="companySymbol" name="companySymbol" placeholder="e.g., AAPL, MSFT" disabled 
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100">
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200" id="startScraping">
+                    🕷️ Start Scraping
+                </button>
+                
+                <!-- Test API Button -->
+                <button type="button" class="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200" id="testApi">
+                    🧪 Test API Connection
+                </button>
+            </form>
+            
+            <!-- Loading State -->
+            <div class="hidden mt-6 text-center" id="loading">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
+                <p class="text-gray-600">Scraping in progress... Please wait.</p>
+            </div>
+        </div>
+        
+        <!-- Recent Sessions -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold mb-6 text-center">📊 Recent Sessions</h3>
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+                {% if recent_sessions %}
+                    {% for session in recent_sessions %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="inline-block bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium">
+                                    {{ session.source|title }}
+                                </span>
+                                <span class="flex items-center space-x-2">
+                                    <span class="w-3 h-3 rounded-full {% if session.status == 'completed' %}bg-green-500{% elif session.status == 'failed' %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
+                                    <span class="text-sm font-medium {% if session.status == 'completed' %}text-green-600{% elif session.status == 'failed' %}text-red-600{% else %}text-yellow-600{% endif %}">
+                                        {{ session.status|title }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-600 space-y-1">
+                                <div>📅 {{ session.created_at|date:"M d, Y H:i" }}</div>
+                                {% if session.articles_scraped %}
+                                    <div>📰 Articles: {{ session.articles_scraped }}</div>
+                                {% endif %}
+                                {% if session.error_message %}
+                                    <div class="text-red-600">❌ {{ session.error_message }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No scraping sessions yet.</p>
+                        <p>Start your first scraping operation to see results here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Articles -->
+    {% if recent_articles %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold mb-6">📰 Recent Articles</h3>
+            <div class="space-y-4">
+                {% for article in recent_articles %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <h4 class="text-lg font-medium text-gray-900 flex-1 mr-4">{{ article.title }}</h4>
+                            <span class="inline-block bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium">
+                                {{ article.source|title }}
+                            </span>
+                        </div>
+                        {% if article.summary %}
+                            <p class="text-gray-600 mt-2">{{ article.summary|truncatewords:30 }}</p>
+                        {% endif %}
+                        <div class="flex justify-between items-center mt-3 text-sm text-gray-500">
+                            <span>📅 {{ article.scraped_date|date:"M d, Y H:i" }}</span>
+                            <a href="/article/{{ article.id }}/" class="text-blue-600 hover:text-blue-800 font-medium">
+                                Read More →
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // Test API connection
+    document.getElementById('testApi').addEventListener('click', function() {
+        this.disabled = true;
+        this.textContent = '🧪 Testing...';
+        
+        fetch('/api/test-scraping/')
+            .then(response => response.json())
+            .then(data => {
+                showAlert('success', 'API is working! ' + data.message);
+            })
+            .catch(error => {
+                showAlert('error', 'API test failed: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.textContent = '🧪 Test API Connection';
+            });
+    });
+    
+    // Enable/disable company symbol field based on source selection
+    document.getElementById('source').addEventListener('change', function() {
+        const companySymbolField = document.getElementById('companySymbol');
+        if (this.value === 'finnhub') {
+            companySymbolField.disabled = false;
+            companySymbolField.classList.remove('bg-gray-100');
+        } else {
+            companySymbolField.disabled = true;
+            companySymbolField.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Start scraping functionality
+    document.getElementById('scrapingForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent form from submitting normally
+        
+        const source = document.getElementById('source').value;
+        const maxArticles = document.getElementById('maxArticles').value;
+        const companySymbol = document.getElementById('companySymbol').value;
+        const submitButton = document.getElementById('startScraping');
+        
+        // Show loading state
+        document.getElementById('loading').classList.remove('hidden');
+        submitButton.disabled = true;
+        submitButton.textContent = '🕷️ Scraping...';
+        
+        // Hide any existing alerts
+        document.getElementById('successAlert').classList.add('hidden');
+        document.getElementById('errorAlert').classList.add('hidden');
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Add timeout for the request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+        
+        // Make API call
+        fetch('/api/start-scraping/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                source: source,
+                max_articles: parseInt(maxArticles),
+                company_symbol: companySymbol
+            }),
+            signal: controller.signal
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showAlert('success', data.message || 'Scraping completed successfully!');
+                // Reload page after successful scraping
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('error', data.error || 'Scraping failed');
+            }
+        })
+        .catch(error => {
+            console.error('Scraping error:', error);
+            showAlert('error', 'Network error: ' + error.message);
+        })
+        .finally(() => {
+            // Clear timeout
+            clearTimeout(timeoutId);
+            
+            // Hide loading state
+            document.getElementById('loading').classList.add('hidden');
+            submitButton.disabled = false;
+            submitButton.textContent = '🕷️ Start Scraping';
+        });
+    });
+    
+    function showAlert(type, message) {
+        const alertElement = document.getElementById(type === 'success' ? 'successAlert' : 'errorAlert');
+        alertElement.textContent = message;
+        alertElement.className = `mb-6 p-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-red-100 text-red-700 border border-red-300'}`;
+        alertElement.classList.remove('hidden');
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            alertElement.classList.add('hidden');
+        }, 5000);
+    }
+</script>
+{% endblock %}

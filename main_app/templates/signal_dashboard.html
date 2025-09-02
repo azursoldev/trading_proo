@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}Trading Signals Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">📊 Trading Signals Dashboard</h1>
+        <p class="text-gray-600">AI-powered trading signals combining GPT analysis with real-time market data</p>
+    </div>
+    
+    <!-- Error Display -->
+    {% if error %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+    
+    <!-- Signal Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">{{ total_signals }}</div>
+            <div class="text-gray-600">Total Signals</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ active_signals }}</div>
+            <div class="text-gray-600">Active Signals</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">{{ executed_signals }}</div>
+            <div class="text-gray-600">Executed Signals</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-orange-600 mb-2">
+                {% if performance_stats.total_signals > 0 %}
+                    {{ performance_stats.success_rate|floatformat:1 }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+            <div class="text-gray-600">Success Rate</div>
+        </div>
+    </div>
+    
+    <!-- Signal Generation Controls -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🚀 Signal Generation</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ticker Symbol</label>
+                <input type="text" id="tickerInput" placeholder="e.g., AAPL, MSFT" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                <select id="sourceSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="combined">Combined Analysis</option>
+                    <option value="gpt_analysis">GPT Analysis</option>
+                    <option value="market_data">Market Data</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button onclick="generateSignal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition duration-200">
+                    🎯 Generate Signal
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Signals by Type -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">📈 Signals by Type</h2>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {% for signal_type, count in signals_by_type.items %}
+                <div class="text-center p-4 rounded-lg 
+                    {% if signal_type == 'buy' or signal_type == 'strong_buy' %}bg-green-50 border border-green-200
+                    {% elif signal_type == 'sell' or signal_type == 'strong_sell' %}bg-red-50 border border-red-200
+                    {% else %}bg-gray-50 border border-gray-200{% endif %}">
+                    <div class="text-2xl font-bold 
+                        {% if signal_type == 'buy' or signal_type == 'strong_buy' %}text-green-600
+                        {% elif signal_type == 'sell' or signal_type == 'strong_sell' %}text-red-600
+                        {% else %}text-gray-600{% endif %}">
+                        {{ count }}
+                    </div>
+                    <div class="text-sm text-gray-600">{{ signal_type|title }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Recent Signals -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">🕒 Recent Signals</h2>
+            <a href="/signals/list/" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All →</a>
+        </div>
+        
+        {% if recent_signals %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Signal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for signal in recent_signals %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ signal.ticker.symbol }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if signal.signal_type == 'buy' or signal.signal_type == 'strong_buy' %}bg-green-100 text-green-800
+                                        {% elif signal.signal_type == 'sell' or signal.signal_type == 'strong_sell' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ signal.get_signal_type_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ signal.get_confidence_display }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ signal.get_source_display }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if signal.status == 'active' %}bg-green-100 text-green-800
+                                        {% elif signal.status == 'executed' %}bg-blue-100 text-blue-800
+                                        {% elif signal.status == 'expired' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ signal.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ signal.timestamp|date:"M d, H:i" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="/signal/{{ signal.id }}/" class="text-blue-600 hover:text-blue-900 mr-3">
+                                        👁️ View
+                                    </a>
+                                    {% if signal.status == 'active' %}
+                                        <button onclick="executeSignal({{ signal.id }})" class="text-green-600 hover:text-green-900">
+                                            ✅ Execute
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <p class="text-gray-500 text-lg">No signals generated yet.</p>
+                <p class="text-gray-400 text-sm mt-2">Generate your first signal using the form above.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Performance Statistics -->
+    {% if performance_stats.total_signals > 0 %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">📊 Performance Statistics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ performance_stats.total_signals }}</div>
+                    <div class="text-sm text-gray-600">Total Executed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ performance_stats.success_rate|floatformat:1 }}%</div>
+                    <div class="text-sm text-gray-600">Success Rate</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ performance_stats.average_performance|floatformat:2 }}%</div>
+                    <div class="text-sm text-gray-600">Avg Performance</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-orange-600">{{ performance_stats.best_performance|floatformat:2 }}%</div>
+                    <div class="text-sm text-gray-600">Best Performance</div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function generateSignal() {
+    const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+    const source = document.getElementById('sourceSelect').value;
+    
+    if (!ticker) {
+        showNotification('Please enter a ticker symbol', 'error');
+        return;
+    }
+    
+    showNotification('Generating signal...', 'info');
+    
+    fetch('/api/signals/generate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            ticker: ticker,
+            source: source
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Signal generated for ${ticker}: ${data.signal_type} (${(data.confidence * 100).toFixed(1)}%)`, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification(`Failed to generate signal: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error generating signal:', error);
+        showNotification('Error generating signal: ' + error.message, 'error');
+    });
+}
+
+function executeSignal(signalId) {
+    const executionPrice = prompt('Enter execution price:');
+    if (!executionPrice || isNaN(executionPrice)) {
+        showNotification('Please enter a valid execution price', 'error');
+        return;
+    }
+    
+    showNotification('Executing signal...', 'info');
+    
+    fetch('/api/signals/execute/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            signal_id: signalId,
+            execution_price: parseFloat(executionPrice)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Signal executed successfully! Performance: ${(data.performance_score * 100).toFixed(2)}%`, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification(`Failed to execute signal: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error executing signal:', error);
+        showNotification('Error executing signal: ' + error.message, 'error');
+    });
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : 
+                   type === 'error' ? 'bg-red-500' : 
+                   type === 'info' ? 'bg-blue-500' : 'bg-gray-500';
+    
+    notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${bgColor} text-white`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

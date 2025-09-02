@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}News Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">📰 Financial News Dashboard</h1>
+        <p class="text-gray-600">Browse and filter financial news articles from multiple sources</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ total_articles }}</div>
+                <div class="text-gray-600">Total Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.reuters|default:0 }}</div>
+                <div class="text-gray-600">Reuters Articles</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">{{ articles_by_source.finnhub|default:0 }}</div>
+                <div class="text-gray-600">FinnHub Articles</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🔍 Filter Articles</h2>
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="source" class="block text-sm font-medium text-gray-700 mb-2">Source:</label>
+                <select name="source" id="source" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="">All Sources</option>
+                    {% for source in sources %}
+                        <option value="{{ source }}" {% if source == current_source %}selected{% endif %}>
+                            {{ source|title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category:</label>
+                <select name="category" id="category" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}" {% if category == current_category %}selected{% endif %}>
+                            {{ category }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search:</label>
+                <input type="text" name="search" id="search" value="{{ current_search }}" 
+                       placeholder="Search articles..." class="w-full border border-gray-300 rounded-md px-3 py-2">
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+                    🔍 Search
+                </button>
+            </div>
+        </form>
+        
+        {% if current_source or current_category or current_search %}
+            <div class="mt-4 text-center">
+                <a href="/news/" class="inline-block bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition duration-200">
+                    ❌ Clear Filters
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Articles -->
+    {% if page_obj %}
+        <div class="space-y-6">
+            {% for article in page_obj %}
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-semibold text-gray-900 flex-1 mr-4">{{ article.title }}</h3>
+                        <div class="text-right">
+                            <span class="inline-block bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium mb-2">
+                                {{ article.source|title }}
+                            </span>
+                            {% if article.category %}
+                                <span class="inline-block bg-red-500 text-white px-3 py-1 rounded text-sm ml-2">
+                                    {{ article.category }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if article.summary %}
+                        <p class="text-gray-700 mb-4">{{ article.summary|truncatewords:50 }}</p>
+                    {% endif %}
+                    
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <div class="flex space-x-4">
+                            {% if article.published_date %}
+                                <span>📅 {{ article.published_date|date:"M d, Y H:i" }}</span>
+                            {% endif %}
+                            {% if article.author %}
+                                <span>👤 {{ article.author }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="/article/{{ article.id }}/" class="text-blue-600 hover:text-blue-800 font-medium">
+                            Read More →
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="flex justify-center mt-8 space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if current_source %}&source={{ current_source }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        « First
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_source %}&source={{ current_source }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        ‹ Previous
+                    </a>
+                {% endif %}
+                
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-md">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_source %}&source={{ current_source }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Next ›
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_source %}&source={{ current_source }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Last »
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white rounded-lg shadow-md p-12 text-center">
+            {% if current_source or current_category or current_search %}
+                <p class="text-gray-600 text-lg mb-4">No articles found matching your criteria.</p>
+                <p class="text-gray-500 mb-6">Try adjusting your filters or <a href="/news/" class="text-blue-600 hover:underline">view all articles</a>.</p>
+            {% else %}
+                <p class="text-gray-600 text-lg mb-4">No articles available yet.</p>
+                <p class="text-gray-500 mb-6">Start scraping to collect financial news articles!</p>
+                <a href="/scraping/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200">
+                    🕷️ Start Scraping
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

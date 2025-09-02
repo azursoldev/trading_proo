@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}API Documentation{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">🔌 API Documentation</h1>
+        <p class="text-gray-600">Complete API reference for the Trading Pro system</p>
+    </div>
+
+    <!-- API Overview -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">📋 API Overview</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-blue-800 mb-2">Base URL</h3>
+                <code class="text-blue-600">{{ base_url }}</code>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-green-800 mb-2">Authentication</h3>
+                <p class="text-green-600">CSRF Token required for POST requests</p>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg">
+                <h3 class="font-semibold text-purple-800 mb-2">Response Format</h3>
+                <p class="text-purple-600">JSON responses with success/error indicators</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Endpoints -->
+    <div class="space-y-6">
+        {% for endpoint in api_endpoints %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ endpoint.name }}</h3>
+                    <p class="text-gray-600 mt-1">{{ endpoint.description }}</p>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if endpoint.method == 'POST' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ endpoint.method }}
+                </span>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                <h4 class="font-medium text-gray-700 mb-2">Endpoint URL:</h4>
+                <code class="text-sm bg-white px-2 py-1 rounded border">{{ base_url }}{{ endpoint.url }}</code>
+            </div>
+
+            {% if endpoint.parameters %}
+            <div class="mb-4">
+                <h4 class="font-medium text-gray-700 mb-2">Parameters:</h4>
+                <div class="space-y-2">
+                    {% for param_name, param_desc in endpoint.parameters.items %}
+                    <div class="flex items-start">
+                        <span class="font-mono text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded mr-3">{{ param_name }}</span>
+                        <span class="text-sm text-gray-600">{{ param_desc }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if endpoint.example %}
+            <div>
+                <h4 class="font-medium text-gray-700 mb-2">Example:</h4>
+                {% if endpoint.example is string %}
+                <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ endpoint.example }}</code>
+                {% else %}
+                <pre class="text-sm bg-gray-100 p-3 rounded overflow-x-auto"><code>{{ endpoint.example|pprint }}</code></pre>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Usage Examples -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 class="text-xl font-semibold mb-4">💡 Usage Examples</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">Start Scraping (JavaScript)</h3>
+                <pre class="text-sm bg-gray-100 p-3 rounded overflow-x-auto"><code>fetch('/api/start-scraping/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({
+        source: 'reuters',
+        max_articles: 20
+    })
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></pre>
+            </div>
+
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">Analyze Article (JavaScript)</h3>
+                <pre class="text-sm bg-gray-100 p-3 rounded overflow-x-auto"><code>fetch('/api/analyze-article/1/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+    }
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></pre>
+            </div>
+
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">Generate Trading Recommendation (JavaScript)</h3>
+                <pre class="text-sm bg-gray-100 p-3 rounded overflow-x-auto"><code>fetch('/api/generate-recommendation/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({
+        ticker: 'AAPL'
+    })
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Formats -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 class="text-xl font-semibold mb-4">📊 Response Formats</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">Success Response</h3>
+                <pre class="text-sm bg-green-50 p-3 rounded overflow-x-auto"><code>{
+    "success": true,
+    "message": "Operation completed successfully",
+    "data": { ... }
+}</code></pre>
+            </div>
+            
+            <div>
+                <h3 class="font-medium text-gray-700 mb-2">Error Response</h3>
+                <pre class="text-sm bg-red-50 p-3 rounded overflow-x-auto"><code>{
+    "success": false,
+    "error": "Error description",
+    "status_code": 400
+}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rate Limiting & Best Practices -->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 class="text-xl font-semibold mb-4">⚡ Best Practices & Rate Limiting</h2>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-blue-600 text-sm font-medium">1</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700">CSRF Protection</h3>
+                    <p class="text-sm text-gray-600">Always include the CSRF token in POST requests. Get it from the cookie named 'csrftoken'.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-blue-600 text-sm font-medium">2</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700">Error Handling</h3>
+                    <p class="text-sm text-gray-600">Always check the 'success' field in responses and handle errors gracefully.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-blue-600 text-sm font-medium">3</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700">Batch Operations</h3>
+                    <p class="text-sm text-gray-600">Use batch endpoints when processing multiple items to reduce API calls.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-blue-600 text-sm font-medium">4</span>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700">Rate Limiting</h3>
+                    <p class="text-sm text-gray-600">Avoid making too many requests simultaneously. Implement delays between requests if needed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Helper function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+
+
+

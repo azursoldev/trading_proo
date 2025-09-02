@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: trading-pro-app
+    env: python
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn trading_project.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        value: django-insecure-vjkw1a)_d6!ru96#3^&p8rcll6!tkwrgcqdo7w!qmz421(h1mn
+      - key: DEBUG
+        value: False

@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}Market Data Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">📊 Market Data Dashboard</h1>
+        <p class="text-gray-600">Interactive Brokers market data integration and real-time monitoring</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">{{ total_tickers }}</div>
+            <div class="text-gray-600">Total Tickers</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ active_tickers }}</div>
+            <div class="text-gray-600">Active Tickers</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">{{ total_market_data }}</div>
+            <div class="text-gray-600">Market Data Points</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-orange-600 mb-2">{{ total_historical_data }}</div>
+            <div class="text-gray-600">Historical Records</div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🚀 Quick Actions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="/ib-connections/" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-md font-medium transition duration-200 text-center">
+                🔌 Manage IB Connections
+            </a>
+            <a href="/tickers/" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-md font-medium transition duration-200 text-center">
+                📈 View All Tickers
+            </a>
+            <button onclick="startDataCollection()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-md font-medium transition duration-200">
+                📊 Start Data Collection
+            </button>
+        </div>
+    </div>
+    
+    <!-- Active Connections -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🔌 Active IB Connections</h2>
+        {% if active_connections %}
+            <div class="space-y-3">
+                {% for connection in active_connections %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="font-medium text-gray-900">{{ connection.name }}</h3>
+                                <p class="text-sm text-gray-600">{{ connection.host }}:{{ connection.port }}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="w-3 h-3 rounded-full {% if connection.status == 'connected' %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+                                <span class="text-sm font-medium {% if connection.status == 'connected' %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {{ connection.status|title }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-4">No active IB connections. <a href="/ib-connections/" class="text-blue-600 hover:underline">Add one now</a></p>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Market Data -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">📈 Recent Market Data</h2>
+        {% if recent_market_data %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Change</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Volume</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for data in recent_market_data %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ data.ticker.symbol }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    ${{ data.last_price|floatformat:2 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {% if data.price_change_percent > 0 %}text-green-600{% elif data.price_change_percent < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                                    {% if data.price_change_percent %}
+                                        {{ data.price_change_percent|floatformat:2 }}%
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {% if data.volume %}
+                                        {{ data.volume|floatformat:0 }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ data.timestamp|date:"H:i:s" }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-4">No recent market data available. Start data collection to see live data!</p>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Jobs -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">⚙️ Recent Data Collection Jobs</h2>
+        {% if recent_jobs %}
+            <div class="space-y-3">
+                {% for job in recent_jobs %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="font-medium text-gray-900">{{ job.get_job_type_display }}</h3>
+                                <p class="text-sm text-gray-600">{{ job.tickers|length }} tickers</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="w-3 h-3 rounded-full {% if job.status == 'completed' %}bg-green-500{% elif job.status == 'failed' %}bg-red-500{% elif job.status == 'running' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></span>
+                                <span class="text-sm font-medium {% if job.status == 'completed' %}text-green-600{% elif job.status == 'failed' %}text-red-600{% elif job.status == 'running' %}text-yellow-600{% else %}text-gray-600{% endif %}">
+                                    {{ job.status|title }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if job.status == 'running' %}
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ job.get_progress_percentage }}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">{{ job.processed_items }}/{{ job.total_items }} items processed</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-4">No recent data collection jobs. Start your first data collection job!</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function startDataCollection() {
+        // Get popular tickers
+        const popularTickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX'];
+        
+        // Show loading state
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '⏳ Starting...';
+        
+        // Make API call
+        fetch('/api/market-data/collect/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                tickers: popularTickers,
+                type: 'both'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Data collection started successfully!', 'success');
+                // Refresh page after 2 seconds
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showNotification('Failed to start data collection: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error starting data collection:', error);
+            showNotification('Error starting data collection: ' + error.message, 'error');
+        })
+        .finally(() => {
+            // Reset button state
+            button.disabled = false;
+            button.textContent = originalText;
+        });
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}

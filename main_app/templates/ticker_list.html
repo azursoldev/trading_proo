@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticker List{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">📈 Ticker List</h1>
+        <p class="text-gray-600">Browse and manage all market tickers</p>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🔍 Filters</h2>
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <input type="text" name="search" value="{{ current_filters.search }}" 
+                       placeholder="Symbol or company name" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sector</label>
+                <select name="sector" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Sectors</option>
+                    {% for sector in sectors %}
+                        <option value="{{ sector }}" {% if current_filters.sector == sector %}selected{% endif %}>{{ sector }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Exchange</label>
+                <select name="exchange" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Exchanges</option>
+                    {% for exchange in exchanges %}
+                        <option value="{{ exchange }}" {% if current_filters.exchange == exchange %}selected{% endif %}>{{ exchange }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select name="active" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All</option>
+                    <option value="true" {% if current_filters.active == 'true' %}selected{% endif %}>Active</option>
+                    <option value="false" {% if current_filters.active == 'false' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="md:col-span-4 flex justify-end space-x-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition duration-200">
+                    🔍 Apply Filters
+                </button>
+                <a href="/tickers/" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium transition duration-200">
+                    🗑️ Clear
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Ticker List -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold">📊 Tickers ({{ page_obj.paginator.count }} total)</h2>
+        </div>
+        
+        {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sector</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exchange</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for ticker in page_obj %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ ticker.symbol }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900">{{ ticker.company_name|default:"--" }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ ticker.sector|default:"Unknown" }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ ticker.exchange }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if ticker.is_active %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            Active
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                            Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="/ticker/{{ ticker.id }}/" class="text-blue-600 hover:text-blue-900 mr-3">
+                                        👁️ View
+                                    </a>
+                                    {% if ticker.is_active %}
+                                        <button onclick="toggleTickerStatus({{ ticker.id }}, false)" class="text-red-600 hover:text-red-900">
+                                            ⏸️ Deactivate
+                                        </button>
+                                    {% else %}
+                                        <button onclick="toggleTickerStatus({{ ticker.id }}, true)" class="text-green-600 hover:text-green-900">
+                                            ▶️ Activate
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+                        </div>
+                        <div class="flex space-x-2">
+                            {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.sector %}&sector={{ current_filters.sector }}{% endif %}{% if current_filters.exchange %}&exchange={{ current_filters.exchange }}{% endif %}{% if current_filters.active %}&active={{ current_filters.active }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md">
+                                        {{ num }}
+                                    </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?page={{ num }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.sector %}&sector={{ current_filters.sector }}{% endif %}{% if current_filters.exchange %}&exchange={{ current_filters.exchange }}{% endif %}{% if current_filters.active %}&active={{ current_filters.active }}{% endif %}" 
+                                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                        {{ num }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.sector %}&sector={{ current_filters.sector }}{% endif %}{% if current_filters.exchange %}&exchange={{ current_filters.exchange }}{% endif %}{% if current_filters.active %}&active={{ current_filters.active }}{% endif %}" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                    Next
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="px-6 py-12 text-center">
+                <p class="text-gray-500 text-lg">No tickers found matching your criteria.</p>
+                <a href="/tickers/" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition duration-200">
+                    View All Tickers
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleTickerStatus(tickerId, isActive) {
+    const action = isActive ? 'activate' : 'deactivate';
+    const confirmed = confirm(`Are you sure you want to ${action} this ticker?`);
+    
+    if (confirmed) {
+        // Make API call to toggle status
+        fetch(`/api/ticker/${tickerId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                is_active: isActive
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Ticker ${action}d successfully!`, 'success');
+                location.reload();
+            } else {
+                showNotification(`Failed to ${action} ticker: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error(`Error ${action}ing ticker:`, error);
+            showNotification(`Error ${action}ing ticker: ${error.message}`, 'error');
+        });
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}
