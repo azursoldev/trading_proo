@@ -23,3 +23,6 @@ python-decouple>=3.8
 azure-storage-blob>=12.19.0
 azure-identity>=1.15.0
 
+google.generativeai
+pymupdf
+
